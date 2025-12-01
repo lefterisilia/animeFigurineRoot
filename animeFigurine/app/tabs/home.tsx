@@ -11,7 +11,7 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { supabase } from "@/lib/supabase";
+import { apiClient } from "@/lib/apiClient";
 
 type Figurine = {
     id: string;
@@ -27,14 +27,15 @@ export default function HomeScreen() {
 
     useEffect(() => {
         const loadFigures = async () => {
-            const { data, error } = await supabase.from("figurines").select("*");
-
-            if (error) {
+            try {
+                // axios call to your backend
+                const response = await apiClient.get<Figurine[]>("/figurines");
+                setFigures(response.data);
+            } catch (error) {
                 console.error("Error loading figurines:", error);
-            } else if (data) {
-                setFigures(data as Figurine[]);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         loadFigures();
@@ -113,9 +114,7 @@ export default function HomeScreen() {
                         {item.description ? (
                             <Text style={styles.figureDescription}>{item.description}</Text>
                         ) : null}
-                        <Text style={styles.price}>
-                            {item.price?.toFixed(2)} EUR
-                        </Text>
+                        <Text style={styles.price}>{item.price?.toFixed(2)} EUR</Text>
                     </View>
                 )}
             />
