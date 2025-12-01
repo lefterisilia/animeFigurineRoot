@@ -1,64 +1,64 @@
-// server/server.js
+// backend/server.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { supabase } from "./supabaseClient.js";
+import { query } from "./db.js";
 
-dotenv.config(); // load .env
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// basic middleware
 app.use(cors());
 app.use(express.json());
 
-// health check
+// Health check
 app.get("/", (req, res) => {
-    res.json({ ok: true, message: "Anime Figurine API is running" });
+    res.json({
+        ok: true,
+        message: "Anime Figurine API (Neon Postgres) is running",
+    });
 });
 
-/**
- * GET /figurines
- * returns all figurines
- */
+// GET /figurines - list all figurines
 app.get("/figurines", async (req, res) => {
-    const { data, error } = await supabase.from("figurines").select("*");
-
-    if (error) {
-        console.error("Error fetching figurines:", error);
-        return res.status(500).json({ error: "Failed to fetch figurines" });
+    try {
+        const result = await query(
+            "SELECT id, name, price, description, image_url FROM figurines ORDER BY id"
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Error fetching figurines:", err);
+        res.status(500).json({ error: "Failed to fetch figurines" });
     }
-
-    res.json(data);
 });
 
-/**
- * POST /figurines
- * body: { name, price, description, image_path }
- * (image_path will be a path in Supabase Storage, e.g. "gojo.png")
- */
+// POST /figurines - add a new figurine
+// body: { name, price, description, image_url }
 app.post("/figurines", async (req, res) => {
-    const { name, price, description, image_path } = req.body;
+    const { name, price, description, image_url } = req.body;
 
     if (!name || price == null) {
         return res.status(400).json({ error: "name and price are required" });
     }
 
-    const { data, error } = await supabase
-        .from("figurines")
-        .insert([{ name, price, description, image_url: image_path }]) // using your column name image_url
-        .select()
-        .single();
+    try {
+        const result = await query(
+            `INSERT INTO figurines (name, price, description, image_url)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, name, price, description, image_url`,
+            [name, price, description, image_url]
+        );
 
-    if (error) {
-        console.error("Error inserting figurine:", error);
-        return res.status(500).json({ error: "Failed to insert figurine" });
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error("Error inserting figurine:", err);
+        res.status(500).json({ error: "Failed to insert figurine" });
     }
-
-    res.status(201).json(data);
 });
 
 app.listen(PORT, () => {
-    console.log(`Anime Figurine API listening on http://localhost:${PORT}`);
+    console.log(
+        `Anime Figurine API (Neon) listening on http://localhost:${PORT}`
+    );
 });
