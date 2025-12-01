@@ -7,7 +7,6 @@ import {
     StyleSheet,
 } from "react-native";
 import { router } from "expo-router";
-// dadad
 export default function ForgotPassword() {
     return (
         <View style={styles.container}>
