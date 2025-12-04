@@ -42,7 +42,6 @@ app-example
 /ios
 /android
 /animeFigurine/.expo/
-/animeFigurine/.vscode/
 /backend/node_modules/.bin/mime
 /backend/node_modules/.bin/mime.cmd
 /backend/node_modules/.bin/mime.ps1
