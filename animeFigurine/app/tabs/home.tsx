@@ -114,7 +114,7 @@ export default function HomeScreen() {
                         {item.description ? (
                             <Text style={styles.figureDescription}>{item.description}</Text>
                         ) : null}
-                        <Text style={styles.price}>{item.price?.toFixed(2)} EUR</Text>
+                        <Text style={styles.price}>{item.price} EUR</Text>
                     </View>
                 )}
             />
