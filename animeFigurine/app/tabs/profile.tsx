@@ -1,6 +1,7 @@
 // app/(tabs)/profile.tsx
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import {View, Text, StyleSheet, TouchableOpacity} from "react-native";
+import { router } from "expo-router";
 
 export default function ProfileScreen() {
     return (
@@ -25,7 +26,14 @@ export default function ProfileScreen() {
 
                 <Field label="Phone number" value="+357 99 912354" />
                 <Field label="Email" value="mdl@outlook.com" />
+                <TouchableOpacity
+                onPress={() => router.push("/login")}
+            >
+                <Text>Logout</Text>
+            </TouchableOpacity>
             </View>
+
+
         </View>
     );
 }
