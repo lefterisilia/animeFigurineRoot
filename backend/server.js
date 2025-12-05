@@ -33,29 +33,50 @@ app.get("/figurines", async (req, res) => {
     }
 });
 
-// POST /figurines - add a new figurine
-// body: { name, price, description, image_url }
-app.post("/figurines", async (req, res) => {
-    const { name, price, description, image_url } = req.body;
+// const bcrypt = require("bcrypt");  // <-- enable later when DB is hashed
 
-    if (!name || price == null) {
-        return res.status(400).json({ error: "name and price are required" });
+app.post("/login", async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
     }
 
     try {
+        // Fetch user by email
         const result = await query(
-            `INSERT INTO figurines (name, price, description, image_url)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, price, description, image_url`,
-            [name, price, description, image_url]
+            "SELECT * FROM users WHERE email = $1",
+            [email]
         );
+        // No user found
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: "Invalid email or password" });
+        }
+        const user = result.rows[0];
 
-        res.status(201).json(result.rows[0]);
+        // -----------------------------
+        // Plain-text password check FOR NOW
+        // -----------------------------
+        if (user.password !== password) {
+            return res.status(401).json({ error: "Invalid email or password" });
+        }
+        // -----------------------------
+        // BCRYPT VERSION (enable later)
+        // const match = await bcrypt.compare(password, user.password);
+        // if (!match) {
+        //    return res.status(401).json({ error: "Invalid email or password" });
+        // }
+        // -----------------------------
+        // Remove password before sending to client
+        const { password: _, ...safeUser } = user;
+
+        return res.json(safeUser);
     } catch (err) {
-        console.error("Error inserting figurine:", err);
-        res.status(500).json({ error: "Failed to insert figurine" });
+        console.error("Error fetching user:", err);
+        return res.status(500).json({ error: "Failed to fetch user" });
     }
 });
+
 
 app.listen(PORT, () => {
     console.log(
