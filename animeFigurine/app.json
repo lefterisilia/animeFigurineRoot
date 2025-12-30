@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "animefigurine",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
@@ -32,7 +32,14 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      [ "@reactvision/react-viro",
+        {
+          "android": {
+            "xRMode": "AR"
+          }
+        }
+          ]
     ],
     "experiments": {
       "typedRoutes": true,

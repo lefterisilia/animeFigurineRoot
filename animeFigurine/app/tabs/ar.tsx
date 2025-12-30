@@ -1,112 +1,82 @@
 // app/(tabs)/ar.tsx
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
 
 export default function ARScreen() {
-    const [permission, requestPermission] = useCameraPermissions();
+    const [ARComponent, setARComponent] = useState<React.ComponentType | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!permission?.granted) {
-            requestPermission();
-        }
-    }, [permission]);
+        let mounted = true;
 
-    if (!permission) {
-        return <View />;
-    }
+        const loadARComponent = async () => {
+            try {
+                // Wait a bit to ensure native modules are ready
+                await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (!permission.granted) {
+                // Dynamically import the AR implementation
+                const { default: ARImplementation } = await import("./ar-implementation");
+                
+                if (mounted) {
+                    setARComponent(() => ARImplementation);
+                    setIsLoading(false);
+                }
+            } catch (err) {
+                console.error("Failed to load AR component:", err);
+                if (mounted) {
+                    setError("Failed to initialize AR. Please restart the app.");
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        loadARComponent();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    if (error) {
         return (
-            <View style={styles.center}>
-                <Text>No access to camera</Text>
+            <View style={styles.container}>
+                <Text style={styles.errorText}>{error}</Text>
             </View>
         );
     }
 
-    return (
-        <View style={styles.container}>
-            {/* LIVE CAMERA FEED */}
-            <CameraView style={styles.camera} facing="back">
+    if (isLoading || !ARComponent) {
+        return (
+            <View style={styles.container}>
+                <ActivityIndicator size="large" color="#FF8A00" />
+                <Text style={styles.loadingText}>Initializing AR...</Text>
+            </View>
+        );
+    }
 
-                {/* TOP LOGO BAR */}
-                <View style={styles.topOverlay}>
-                    <Image
-                        source={require("../../assets/logo.png")}
-                        style={styles.logo}
-                        resizeMode="contain"
-                    />
-                    <Text style={styles.modeText}>AR mode</Text>
-                </View>
-
-                {/* FIGURE & MEASUREMENTS OVERLAY */}
-                <View style={styles.centerOverlay}>
-                    {/*<Image*/}
-                    {/*    source={require("../../assets/figures/gojo-3dr.png")} // transparent PNG*/}
-                    {/*    style={styles.figure}*/}
-                    {/*    resizeMode="contain"*/}
-                    {/*/>*/}
-
-                    {/* Measurement lines */}
-                    <Text style={styles.labelTop}>20 cm</Text>
-                    <Text style={styles.labelBottom}>5 cm</Text>
-                </View>
-
-            </CameraView>
-        </View>
-    );
+    return <ARComponent />;
 }
-
-const ORANGE = "#FF8A00";
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000",
+        justifyContent: "center",
+        alignItems: "center",
     },
-    camera: {
+    arView: {
         flex: 1,
     },
-    topOverlay: {
-        width: "100%",
-        paddingTop: 40,
+    loadingText: {
+        color: "#FF8A00",
+        fontSize: 16,
+        marginTop: 10,
+    },
+    errorText: {
+        color: "#FF0000",
+        fontSize: 16,
+        textAlign: "center",
         paddingHorizontal: 20,
-    },
-    logo: {
-        width: 150,
-        height: 50,
-    },
-    modeText: {
-        color: ORANGE,
-        fontSize: 18,
-        fontWeight: "600",
-    },
-    centerOverlay: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    figure: {
-        width: 250,
-        height: 350,
-    },
-    labelTop: {
-        position: "absolute",
-        top: 180,
-        color: "#ffffff",
-        fontSize: 20,
-        fontWeight: "600",
-    },
-    labelBottom: {
-        position: "absolute",
-        bottom: 160,
-        color: "#ffffff",
-        fontSize: 20,
-        fontWeight: "600",
-    },
-    center: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
     },
 });
