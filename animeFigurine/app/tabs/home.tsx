@@ -10,6 +10,7 @@ import {
     FlatList,
     ActivityIndicator,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/apiClient";
 
@@ -22,6 +23,7 @@ type Figurine = {
 };
 
 export default function HomeScreen() {
+    const router = useRouter();
     const [figures, setFigures] = useState<Figurine[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -88,7 +90,6 @@ export default function HomeScreen() {
                 </View>
             </View>
 
-            {/* Figurines list */}
             <FlatList
                 contentContainerStyle={{
                     paddingHorizontal: 20,
@@ -97,7 +98,13 @@ export default function HomeScreen() {
                 data={figures}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                    <View style={styles.figureCard}>
+                    <TouchableOpacity
+                        style={styles.figureCard}
+                        activeOpacity={0.8}
+                        onPress={() => router.push(`/tabs/FigurineDescription/${item.id}`)}
+                        accessible
+                        accessibilityLabel={`Open ${item.name}`}
+                    >
                         {item.image_url ? (
                             <Image
                                 source={{ uri: item.image_url }}
@@ -115,7 +122,7 @@ export default function HomeScreen() {
                             <Text style={styles.figureDescription}>{item.description}</Text>
                         ) : null}
                         <Text style={styles.price}>{item.price} EUR</Text>
-                    </View>
+                    </TouchableOpacity>
                 )}
             />
         </View>

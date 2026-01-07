@@ -20,6 +20,24 @@ app.get("/", (req, res) => {
     });
 });
 
+// GET /figurines/:id - get details for one figurine
+app.get("/figurines/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await query(
+            "SELECT id, name, price, description, image_url FROM figurines WHERE id = $1",
+            [id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Figurine not found" });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Error fetching figurine detail:", err);
+        res.status(500).json({ error: "Failed to fetch figurine" });
+    }
+});
+
 // GET /figurines - list all figurines
 app.get("/figurines", async (req, res) => {
     try {
