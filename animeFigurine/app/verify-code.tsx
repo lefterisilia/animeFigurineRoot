@@ -5,16 +5,62 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
+    Alert,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { apiClient } from "@/lib/apiClient";
+import { AxiosError } from "axios";
 
 export default function VerifyCode() {
+    const { userEmail } = useLocalSearchParams<{ userEmail: string }>();
     const [code, setCode] = useState(["", "", "", ""]);
+    const [isLoading, setIsLoading] = useState(false);
 
     const updateCode = (value: string, index: number) => {
         const newCode = [...code];
         newCode[index] = value;
         setCode(newCode);
+    };
+
+    const handleVerifyCode = async () => {
+        if (isLoading) return;
+
+        const fullCode = code.join("");
+        if (fullCode.length !== 4) {
+            Alert.alert("Invalid Code", "Please enter the 4-digit code.");
+            return;
+        }
+
+        if (!userEmail) {
+            Alert.alert("Error", "Email not found. Please try again.");
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            const response = await apiClient.post("/VerifyPin", {
+                email: userEmail,
+                code: fullCode,
+            });
+
+            if (response.data.success) {
+                router.push({
+                    pathname: "/new-password",
+                    params: { userEmail },
+                });
+            }
+        } catch (err) {
+            const error = err as AxiosError<{ message?: string; error?: string }>;
+            const fromServer =
+                (error.response?.data as any)?.error ||
+                (error.response?.data as any)?.message;
+            const message = fromServer || error.message || "Unknown error";
+
+            Alert.alert("Verification Failed", message);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -50,8 +96,13 @@ export default function VerifyCode() {
 
             {/* Confirm Button */}
             <TouchableOpacity
-                style={styles.confirmButton} onPress={() => router.push("/password-updated")}>
-                <Text style={styles.confirmText}>Confirm</Text>
+                style={styles.confirmButton}
+                onPress={handleVerifyCode}
+                disabled={isLoading}
+            >
+                <Text style={styles.confirmText}>
+                    {isLoading ? "Verifying..." : "Confirm"}
+                </Text>
             </TouchableOpacity>
 
             <TouchableOpacity>

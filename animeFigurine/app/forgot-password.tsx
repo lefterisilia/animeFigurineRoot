@@ -1,13 +1,62 @@
-import React from "react";
+import React, {useCallback, useState} from "react";
 import {
     View,
     Text,
     TextInput,
     TouchableOpacity,
-    StyleSheet,
+    StyleSheet, Alert,
 } from "react-native";
 import { router } from "expo-router";
+import {apiClient} from "@/lib/apiClient";
+import {AxiosError} from "axios";
+
+
+
+
 export default function ForgotPassword() {
+    const [isLoading, setIsLoading] = useState(false);
+    const [serverMessage, setServerMessage] = useState<string | null>(null);
+    const [serverMessageType, setServerMessageType] = useState<"error" | "success" | null>(null);
+    const [email, setEmail] = useState("");
+
+
+    const handleSendPin = useCallback(async (): Promise<void> => {
+        if (isLoading) return;
+
+        if (!email) {
+            Alert.alert("Missing info", "Please enter both email and password.");
+            return;
+        }
+
+        setIsLoading(true);
+        setServerMessage(null);
+        setServerMessageType(null);
+
+        try {
+            const response = await apiClient.post("/SendPin", { email });
+            console.log(response.data);
+
+            setServerMessage("Login successful");
+            setServerMessageType("success");
+
+            router.push({
+                pathname: "/verify-code",
+                params: { userEmail: email },
+            });
+        } catch (err) {
+            const error = err as AxiosError<{ message?: string; error?: string }>;
+            const fromServer =
+                (error.response?.data as any)?.error ||
+                (error.response?.data as any)?.message;
+            const message = fromServer || error.message || "Unknown error";
+
+            setServerMessage(message);
+            setServerMessageType("error");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [email, isLoading]);
+
     return (
         <View style={styles.container}>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -32,14 +81,19 @@ export default function ForgotPassword() {
                     style={styles.input}
                     placeholder="Email"
                     keyboardType="email-address"
+                    value={email}
+                    onChangeText={setEmail}
                 />
             </View>
 
             <TouchableOpacity
                 style={styles.sendButton}
-                onPress={() => router.push("/verify-code")}
+                onPress={handleSendPin}
+                disabled={isLoading}
             >
-                <Text style={styles.sendText}>Send</Text>
+                <Text style={styles.sendText}>
+                    {isLoading ? "Sending..." : "Send"}
+                </Text>
             </TouchableOpacity>
         </View>
     );
