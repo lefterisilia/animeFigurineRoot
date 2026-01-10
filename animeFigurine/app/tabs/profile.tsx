@@ -19,11 +19,6 @@ export default function ProfileScreen() {
                 <Field label="Name" value="Andreas Constantinides" />
                 <Field label="Date of Birth" value="12 Apr 1994" />
 
-                <Field
-                    label="Residential address"
-                    value={"Blue street 9\n0000 Limassol\nCyprus"}
-                />
-
                 <Field label="Phone number" value="+357 99 912354" />
                 <Field label="Email" value="mdl@outlook.com" />
                 <TouchableOpacity

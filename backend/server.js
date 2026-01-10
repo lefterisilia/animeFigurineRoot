@@ -146,6 +146,47 @@ app.get("/figurines", async (req, res) => {
     }
 });
 
+// POST /signup - create new user account
+app.post("/signup", async (req, res) => {
+    const { name, email, password } = req.body;
+
+    // 1. Validate input
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: "Please fill in all fields" });
+    }
+
+    try {
+        // 2. Check if email already exists
+        const result = await query(
+            "SELECT id FROM users WHERE email = $1",
+            [email.toLowerCase().trim()]
+        );
+
+        if (result.rows.length > 0) {
+            return res.status(409).json({ error: "Email already exists" });
+        }
+
+        // 3. Hash password
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // 4. Insert user
+        await query(
+            `INSERT INTO users (username, email, password, regdate)
+             VALUES ($1, $2, $3, NOW())`,
+            [name, email.toLowerCase().trim(), hashedPassword]
+        );
+
+        res.status(201).json({
+            success: true,
+            message: "User registered successfully"
+        });
+
+    } catch (err) {
+        console.error("Error creating user:", err);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
 // const bcrypt = require("bcrypt");  // <-- enable later when DB is hashed
 app.post("/register", async (req, res) => {
     const { fullname, email, password, confirmPass } = req.body;
@@ -212,19 +253,12 @@ app.post("/login", async (req, res) => {
         }
         const user = result.rows[0];
 
-        // -----------------------------
-        // Plain-text password check FOR NOW
-        // -----------------------------
-        if (user.password !== password) {
+        // Verify password using bcrypt
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
             return res.status(401).json({ error: "Invalid email or password" });
         }
-        // -----------------------------
-        // BCRYPT VERSION (enable later)
-        // const match = await bcrypt.compare(password, user.password);
-        // if (!match) {
-        //    return res.status(401).json({ error: "Invalid email or password" });
-        // }
-        // -----------------------------
+
         // Remove password before sending to client
         const { password: _, ...safeUser } = user;
 

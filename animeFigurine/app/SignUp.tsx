@@ -87,7 +87,7 @@ export default function SignUp() {
 
                     <TextInput
                         style={styles.input}
-                        placeholder="Full name"
+                        placeholder="Username"
                         placeholderTextColor="#666"
                         value={fullName}
                         onChangeText={setFullName}
