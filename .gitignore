@@ -2,7 +2,7 @@
 
 # dependencies
 animeFigurine/node_modules/
-
+backend/node_modules/
 # Expo
 .expo/
 dist/
@@ -1063,3 +1063,4 @@ app-example
 /backend/node_modules/xtend/README.md
 /backend/node_modules/xtend/test.js
 /backend/node_modules/.package-lock.json
+/backend/node_modules/nodemailer/.gitattributes
