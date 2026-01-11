@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "animefigurine",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },

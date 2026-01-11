@@ -13,6 +13,7 @@ import {
 import { router } from "expo-router";
 import { apiClient } from "@/lib/apiClient";
 import { AxiosError } from "axios";
+import { saveUser } from "@/lib/authStorage";
 
 export default function Login() {
 
@@ -44,7 +45,7 @@ export default function Login() {
 
             setServerMessage("Login successful");
             setServerMessageType("success");
-
+            await saveUser(response.data);
             router.push("/tabs/home");
         } catch (err) {
             const error = err as AxiosError<{ message?: string; error?: string }>;

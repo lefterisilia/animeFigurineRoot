@@ -2,6 +2,7 @@
 import React from "react";
 import {View, Text, StyleSheet, TouchableOpacity} from "react-native";
 import { router } from "expo-router";
+import { clearUser } from "@/lib/authStorage";
 
 export default function ProfileScreen() {
     return (
@@ -22,10 +23,13 @@ export default function ProfileScreen() {
                 <Field label="Phone number" value="+357 99 912354" />
                 <Field label="Email" value="mdl@outlook.com" />
                 <TouchableOpacity
-                onPress={() => router.push("/login")}
-            >
-                <Text>Logout</Text>
-            </TouchableOpacity>
+                    onPress={async () => {
+                        await clearUser();
+                        router.replace("/login");
+                    }}
+                >
+                    <Text>Logout</Text>
+                </TouchableOpacity>
             </View>
 
 
