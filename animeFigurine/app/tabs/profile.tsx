@@ -1,27 +1,53 @@
 // app/(tabs)/profile.tsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {View, Text, StyleSheet, TouchableOpacity} from "react-native";
 import { router } from "expo-router";
-import { clearUser } from "@/lib/authStorage";
+import { clearUser, getUser } from "@/lib/authStorage";
 
 export default function ProfileScreen() {
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        const loadUser = async () => {
+            const userData = await getUser();
+            setUser(userData);
+        };
+        loadUser();
+    }, []);
+
+    const getInitials = (name: string) => {
+        if (!name) return "??";
+        const parts = name.trim().split(" ");
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    };
+
+
+    if (!user) {
+        return (
+            <View style={styles.container}>
+                <Text>Loading...</Text>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             {/* Avatar circle */}
             <View style={styles.avatar}>
-                <Text style={styles.avatarText}>AC</Text>
+                <Text style={styles.avatarText}>{getInitials(user.username || "")}</Text>
             </View>
 
-            <Text style={styles.name}>Andreas Constantinides</Text>
+            <Text style={styles.name}>{user.username || "N/A"}</Text>
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Personal Information</Text>
 
-                <Field label="Name" value="Andreas Constantinides" />
-                <Field label="Date of Birth" value="12 Apr 1994" />
+                <Field label="Name" value={user.username || "N/A"} />
 
-                <Field label="Phone number" value="+357 99 912354" />
-                <Field label="Email" value="mdl@outlook.com" />
+                <Field label="Email" value={user.email || "N/A"} />
                 <TouchableOpacity
                     onPress={async () => {
                         await clearUser();

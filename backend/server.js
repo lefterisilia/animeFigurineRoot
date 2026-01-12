@@ -270,6 +270,211 @@ app.post("/login", async (req, res) => {
 });
 
 
+// Cart endpoints
+app.post("/cart/add", async (req, res) => {
+    const { userid, productid } = req.body;
+
+    if (!userid || !productid) {
+        return res.status(400).json({ error: "userid and productid are required" });
+    }
+
+    try {
+        // Check if item already exists in cart
+        const existing = await query(
+            "SELECT * FROM cart WHERE userid = $1 AND productid = $2",
+            [userid, productid]
+        );
+
+        if (existing.rows.length > 0) {
+            // Item already in cart, just return success
+            return res.json({ success: true, message: "Item already in cart" });
+        }
+
+        // Insert new cart item
+        await query(
+            "INSERT INTO cart (userid, productid) VALUES ($1, $2)",
+            [userid, productid]
+        );
+
+        res.json({ success: true, message: "Item added to cart" });
+    } catch (err) {
+        console.error("Error adding to cart:", err);
+        res.status(500).json({ error: "Failed to add item to cart" });
+    }
+});
+
+app.post("/cart/remove", async (req, res) => {
+    const { userid, productid } = req.body;
+
+    if (!userid || !productid) {
+        return res.status(400).json({ error: "userid and productid are required" });
+    }
+
+    try {
+        await query(
+            "DELETE FROM cart WHERE userid = $1 AND productid = $2",
+            [userid, productid]
+        );
+
+        res.json({ success: true, message: "Item removed from cart" });
+    } catch (err) {
+        console.error("Error removing from cart:", err);
+        res.status(500).json({ error: "Failed to remove item from cart" });
+    }
+});
+
+app.get("/cart/:userid", async (req, res) => {
+    const { userid } = req.params;
+
+    if (!userid) {
+        return res.status(400).json({ error: "userid is required" });
+    }
+
+    try {
+        const result = await query(
+            `SELECT 
+                c.id as cart_id,
+                c.userid,
+                c.productid,
+                f.id,
+                f.name,
+                f.price,
+                f.image_url,
+                f.description
+            FROM cart c
+            LEFT JOIN figurines f ON c.productid = f.id
+            WHERE c.userid = $1`,
+            [userid]
+        );
+
+        res.json({ items: result.rows });
+    } catch (err) {
+        console.error("Error fetching cart:", err);
+        res.status(500).json({ error: "Failed to fetch cart" });
+    }
+});
+
+// Get saved address for a user
+app.get("/address/:userid", async (req, res) => {
+    const { userid } = req.params;
+
+    if (!userid) {
+        return res.status(400).json({ error: "userid is required" });
+    }
+
+    try {
+        const result = await query(
+            "SELECT * FROM shipping WHERE userid = $1",
+            [userid]
+        );
+
+        if (result.rows.length > 0) {
+            res.json({ address: result.rows[0] });
+        } else {
+            res.json({ address: null });
+        }
+    } catch (err) {
+        console.error("Error fetching address:", err);
+        res.status(500).json({ error: "Failed to fetch address" });
+    }
+});
+
+// Address endpoint for checkout
+app.post("/address/save", async (req, res) => {
+    const { userid, address, city, postalcode, notes } = req.body;
+
+    if (!userid || !address || !city || !postalcode) {
+        return res.status(400).json({ error: "userid, address, city, and postalcode are required" });
+    }
+
+    try {
+        // Check if address already exists for this user
+        const existing = await query(
+            "SELECT * FROM shipping WHERE userid = $1",
+            [userid]
+        );
+
+        if (existing.rows.length > 0) {
+            // Update existing address
+            await query(
+                "UPDATE shipping SET address = $1, city = $2, postalcode = $3, notes = $4 WHERE userid = $5",
+                [address, city, postalcode, notes || null, userid]
+            );
+        } else {
+            // Insert new address
+            await query(
+                "INSERT INTO shipping (userid, address, city, postalcode, notes) VALUES ($1, $2, $3, $4, $5)",
+                [userid, address, city, postalcode, notes || null]
+            );
+        }
+
+        res.json({ success: true, message: "Address saved successfully" });
+    } catch (err) {
+        console.error("Error saving address:", err);
+        res.status(500).json({ error: "Failed to save address" });
+    }
+});
+
+// Order creation endpoint
+app.post("/order/create", async (req, res) => {
+    const { userid, address, city, postalcode, notes, cartItems, total } = req.body;
+
+    if (!userid || !address || !city || !postalcode || !cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+        return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    try {
+        // 1. Save or update address and get the address id
+        const existingAddress = await query(
+            "SELECT id FROM shipping WHERE userid = $1",
+            [userid]
+        );
+
+        let shippingId;
+        if (existingAddress.rows.length > 0) {
+            // Update existing address
+            await query(
+                "UPDATE shipping SET address = $1, city = $2, postalcode = $3, notes = $4 WHERE userid = $5",
+                [address, city, postalcode, notes || null, userid]
+            );
+            shippingId = existingAddress.rows[0].id;
+        } else {
+            // Insert new address
+            const newAddress = await query(
+                "INSERT INTO shipping (userid, address, city, postalcode, notes) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+                [userid, address, city, postalcode, notes || null]
+            );
+            shippingId = newAddress.rows[0].id;
+        }
+
+        // 2. Create order in orders table
+        const orderResult = await query(
+            "INSERT INTO orders (userid, shippingid, date, status, total) VALUES ($1, $2, NOW(), $3, $4) RETURNING id",
+            [userid, shippingId, "sent", total]
+        );
+        const orderId = orderResult.rows[0].id;
+
+        // 3. Insert all products into orders_products table
+        for (const item of cartItems) {
+            await query(
+                "INSERT INTO orders_products (orderid, productid) VALUES ($1, $2)",
+                [orderId, item.id]
+            );
+        }
+
+        // 4. Clear the cart
+        await query(
+            "DELETE FROM cart WHERE userid = $1",
+            [userid]
+        );
+
+        res.json({ success: true, message: "Order created successfully", orderId });
+    } catch (err) {
+        console.error("Error creating order:", err);
+        res.status(500).json({ error: "Failed to create order" });
+    }
+});
+
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`API listening on http://0.0.0.0:${PORT}`);
 });
