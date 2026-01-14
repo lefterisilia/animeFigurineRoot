@@ -11,8 +11,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { getUser } from "@/lib/authStorage";
-
-const API_URL = "http://192.168.1.6:4000";
+import { apiClient } from "@/lib/apiClient";
 
 interface Product {
     order_product_id: number;
@@ -57,14 +56,10 @@ export default function OrderHistoryScreen() {
                 return;
             }
 
-            const response = await fetch(`${API_URL}/orders/${user.id}`);
-            const data = await response.json();
+            const response = await apiClient.get(`/orders/${user.id}`);
+            const data = response.data;
 
-            if (response.ok) {
-                setOrders(data.orders || []);
-            } else {
-                setError(data.error || "Failed to fetch orders");
-            }
+            setOrders(data.orders || []);
         } catch (err) {
             console.error("Error fetching orders:", err);
             setError("Failed to load orders. Please try again.");
@@ -82,8 +77,10 @@ export default function OrderHistoryScreen() {
         });
     };
 
-    const formatPrice = (price: number) => {
-        return `$${price.toFixed(2)}`;
+    const formatPrice = (price: number | string | null | undefined) => {
+        const numPrice = typeof price === "string" ? parseFloat(price) : price;
+        if (numPrice === null || numPrice === undefined || isNaN(numPrice)) return "$0.00";
+        return `$${numPrice.toFixed(2)}`;
     };
 
     if (loading) {
@@ -99,10 +96,7 @@ export default function OrderHistoryScreen() {
         return (
             <View style={styles.centerContainer}>
                 <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity
-                    style={styles.retryButton}
-                    onPress={fetchOrders}
-                >
+                <TouchableOpacity style={styles.retryButton} onPress={fetchOrders}>
                     <Text style={styles.retryButtonText}>Retry</Text>
                 </TouchableOpacity>
             </View>
@@ -113,22 +107,21 @@ export default function OrderHistoryScreen() {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity
-                    onPress={() => router.back()}
-                    style={styles.backButton}
-                >
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Text style={styles.backButtonText}>← Back</Text>
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Order History</Text>
             </View>
 
-            <ScrollView style={styles.scrollView}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent} // ✅ adds bottom space
+                showsVerticalScrollIndicator={false}
+            >
                 {orders.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Text style={styles.emptyText}>No orders yet</Text>
-                        <Text style={styles.emptySubtext}>
-                            Your order history will appear here
-                        </Text>
+                        <Text style={styles.emptySubtext}>Your order history will appear here</Text>
                     </View>
                 ) : (
                     orders.map((order) => (
@@ -136,57 +129,33 @@ export default function OrderHistoryScreen() {
                             {/* Order Header */}
                             <View style={styles.orderHeader}>
                                 <View>
-                                    <Text style={styles.orderIdText}>
-                                        Order #{order.id}
-                                    </Text>
-                                    <Text style={styles.orderDateText}>
-                                        {formatDate(order.date)}
-                                    </Text>
+                                    <Text style={styles.orderIdText}>Order #{order.id}</Text>
+                                    <Text style={styles.orderDateText}>{formatDate(order.date)}</Text>
                                 </View>
                                 <View style={styles.statusBadge}>
-                                    <Text style={styles.statusText}>
-                                        {order.status}
-                                    </Text>
+                                    <Text style={styles.statusText}>{order.status}</Text>
                                 </View>
                             </View>
 
                             {/* Shipping Address */}
                             <View style={styles.addressSection}>
-                                <Text style={styles.sectionLabel}>
-                                    Shipping Address:
-                                </Text>
-                                <Text style={styles.addressText}>
-                                    {order.address}
-                                </Text>
+                                <Text style={styles.sectionLabel}>Shipping Address:</Text>
+                                <Text style={styles.addressText}>{order.address}</Text>
                                 <Text style={styles.addressText}>
                                     {order.city}, {order.postalcode}
                                 </Text>
-                                {order.notes && (
-                                    <Text style={styles.notesText}>
-                                        Note: {order.notes}
-                                    </Text>
-                                )}
+                                {order.notes && <Text style={styles.notesText}>Note: {order.notes}</Text>}
                             </View>
 
                             {/* Products */}
                             <View style={styles.productsSection}>
                                 <Text style={styles.sectionLabel}>Items:</Text>
                                 {order.products.map((product) => (
-                                    <View
-                                        key={product.order_product_id}
-                                        style={styles.productItem}
-                                    >
-                                        <Image
-                                            source={{ uri: product.image_url }}
-                                            style={styles.productImage}
-                                        />
+                                    <View key={product.order_product_id} style={styles.productItem}>
+                                        <Image source={{ uri: product.image_url }} style={styles.productImage} />
                                         <View style={styles.productInfo}>
-                                            <Text style={styles.productName}>
-                                                {product.name}
-                                            </Text>
-                                            <Text style={styles.productPrice}>
-                                                {formatPrice(product.price)}
-                                            </Text>
+                                            <Text style={styles.productName}>{product.name}</Text>
+                                            <Text style={styles.productPrice}>{formatPrice(product.price)}</Text>
                                         </View>
                                     </View>
                                 ))}
@@ -195,9 +164,7 @@ export default function OrderHistoryScreen() {
                             {/* Order Total */}
                             <View style={styles.totalSection}>
                                 <Text style={styles.totalLabel}>Total:</Text>
-                                <Text style={styles.totalAmount}>
-                                    {formatPrice(order.total)}
-                                </Text>
+                                <Text style={styles.totalAmount}>{formatPrice(order.total)}</Text>
                             </View>
                         </View>
                     ))
@@ -248,6 +215,12 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 15,
     },
+
+    // ✅ THIS is what fixes the bottom nav overlap
+    scrollContent: {
+        paddingBottom: 140, // adjust if you want (try 120–180 depending on your TAB_HEIGHT)
+    },
+
     loadingText: {
         marginTop: 10,
         fontSize: 16,
