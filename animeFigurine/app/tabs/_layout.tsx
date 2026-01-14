@@ -49,12 +49,6 @@ export default function TabsLayout() {
 
                         />
                         <TabIcon
-                            icon="camera-outline"
-                            isActive={currentRoute === "ar"}
-                            size={ICON_SIZE}
-                            onPress={() => router.push("/tabs/ar")}
-                        />
-                        <TabIcon
                             icon="person-outline"
                             isActive={currentRoute === "profile"}
                             size={ICON_SIZE}

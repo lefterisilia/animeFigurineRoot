@@ -120,7 +120,7 @@ app.get("/figurines/:id", async (req, res) => {
     const { id } = req.params;
     try {
         const result = await query(
-            "SELECT id, name, price, description, image_url FROM figurines WHERE id = $1",
+            "SELECT id, name, price, description, image_url, name_glb FROM figurines WHERE id = $1",
             [id]
         );
         if (result.rows.length === 0) {

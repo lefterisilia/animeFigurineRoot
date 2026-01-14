@@ -6,7 +6,7 @@ import {
     Image,
     ActivityIndicator,
     ScrollView,
-    TouchableOpacity,
+    TouchableOpacity, Dimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,9 +20,13 @@ type Figurine = {
     price: number;
     description: string | null;
     image_url: string | null;
+    name_glb: string | null;
 };
 
 export default function FigurineDescription() {
+
+    // 3) Compute a responsive spacer height and add style (place before `const styles = StyleSheet.create({...})`)
+
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const [figure, setFigure] = useState<Figurine | null>(null);
@@ -107,12 +111,29 @@ export default function FigurineDescription() {
                 >
                     <Text style={styles.buyButtonText}>Add to Cart</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.buyButton}
+                    onPress={() => {
+                        if (figure.name_glb) {
+                            router.push(`/tabs/ar?glb=${encodeURIComponent(figure.name_glb)}`);
+                        } else {
+                            alert("3D model not available for this figurine");
+                        }
+                     }}
+                >
+                    <Text style={styles.buyButtonText}>Visualise Figurine</Text>
+                </TouchableOpacity>
             </View>
+            <View style={styles.bottomSpacer} />
+
         </ScrollView>
     );
 }
 
 const ORANGE = "#FF8A00";
+const { width: WINDOW_WIDTH } = Dimensions.get("window");
+const bottomSpacerHeight = Math.max(100, Math.min(180, Math.round(WINDOW_WIDTH * 0.06))); // clamp between 40 and 90
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
@@ -155,6 +176,10 @@ const styles = StyleSheet.create({
         borderRadius: 15,
         alignItems: "center",
         marginTop: 30,
+    },
+    bottomSpacer: {
+        height: bottomSpacerHeight,
+        width: "100%",
     },
     buyButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });

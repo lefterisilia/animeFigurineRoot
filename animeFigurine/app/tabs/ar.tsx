@@ -1,9 +1,11 @@
 // app/(tabs)/ar.tsx
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 
 export default function ARScreen() {
-    const [ARComponent, setARComponent] = useState<React.ComponentType | null>(null);
+    const { glb } = useLocalSearchParams();
+    const [ARComponent, setARComponent] = useState<React.ComponentType<any> | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +57,7 @@ export default function ARScreen() {
         );
     }
 
-    return <ARComponent />;
+    return <ARComponent glbFileName={glb as string} />;
 }
 
 const styles = StyleSheet.create({

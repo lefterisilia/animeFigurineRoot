@@ -51,6 +51,21 @@ function getPositionFromCameraTransform(t: any): Vec3 {
     return [0, 0, 0];
 }
 
+// Map GLB filenames to their require paths
+function getGLBSource(fileName: string) {
+    const glbMap: { [key: string]: any } = {
+        "saitama.glb": require("../../assets/saitama.glb"),
+        "dio.glb": require("../../assets/dio.glb"),
+        "dog.glb": require("../../assets/dog.glb"),
+        "genos.glb": require("../../assets/genos.glb"),
+        "jotaro.glb": require("../../assets/jotaro.glb"),
+        "makima.glb": require("../../assets/makima.glb"),
+        "new_no_draco.glb": require("../../assets/new_no_draco.glb"),
+    };
+    
+    return glbMap[fileName] || glbMap["saitama.glb"];
+}
+
 function ARScene(props: any) {
     const appProps = props?.sceneNavigator?.viroAppProps;
 
@@ -58,6 +73,7 @@ function ARScene(props: any) {
     const lockedWorldPos: Vec3 = appProps?.lockedWorldPos ?? [0, -0.5, -1];
     const followCamPos: Vec3 = appProps?.followCamPos ?? [0, 0, 0];
     const followCamFwd: Vec3 = appProps?.followCamFwd ?? [0, 0, -1];
+    const glbFileName: string = appProps?.glbFileName ?? "saitama.glb";
 
     const setCameraPose: ((p: Vec3, f: Vec3) => void) | undefined = appProps?.setCameraPose;
 
@@ -86,24 +102,24 @@ function ARScene(props: any) {
             <ViroAmbientLight color="#ffffff" />
 
             <Viro3DObject
-                source={require("../../assets/jorato/tripo_convert_157789a6-34d6-43b8-819a-7dd1e039b5f4.obj")}
-                resources={[
-                    require("../../assets/jorato/tripo_convert_157789a6-34d6-43b8-819a-7dd1e039b5f4.mtl"),
-                    require("../../assets/jorato/jorato_basecolor.JPEG"),
-                    require("../../assets/jorato/jorato_metallic.JPEG"),
-                    require("../../assets/jorato/jorato_normal.JPEG"),
-                    require("../../assets/jorato/jorato_roughness.JPEG"),
-                ]}
-                position={[0, -0.2, -1]}
-                scale={[0.05, 0.05, 0.05]}
-                type="OBJ"
+                key={glbFileName}
+                source={getGLBSource(glbFileName)}
+                position={objectPosition}
+                scale={[1, 1, 1]} // Anime models are usually huge, start small
+                type="GLB"
+                onLoadStart={() => console.log(`--- Loading ${glbFileName} ---`)}
+                onLoadEnd={() => console.log(`--- ${glbFileName} loaded successfully! ---`)}
+                onError={(event) => console.error("GLB Error:", event.nativeEvent.error)}
             />
-
         </ViroARScene>
     );
 }
 
-export default function ARImplementation() {
+interface ARImplementationProps {
+    glbFileName?: string;
+}
+
+export default function ARImplementation({ glbFileName }: ARImplementationProps) {
     const [locked, setLocked] = useState(false);
 
     // continuously updated camera pose
@@ -142,8 +158,9 @@ export default function ARImplementation() {
             followCamPos,
             followCamFwd,
             setCameraPose,
+            glbFileName,
         }),
-        [locked, lockedWorldPos, followCamPos, followCamFwd, setCameraPose]
+        [locked, lockedWorldPos, followCamPos, followCamFwd, setCameraPose, glbFileName]
     );
 
     return (
