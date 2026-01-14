@@ -75,6 +75,7 @@ function ARScene(props: any) {
     const followCamFwd: Vec3 = appProps?.followCamFwd ?? [0, 0, -1];
     const glbFileName: string = appProps?.glbFileName ?? "saitama.glb";
     const scale: Vec3 = appProps?.scale ?? [0.55, 0.55, 0.55];
+    const rotation: number = appProps?.rotation ?? 0;
 
     const setCameraPose: ((p: Vec3, f: Vec3) => void) | undefined = appProps?.setCameraPose;
 
@@ -107,6 +108,7 @@ function ARScene(props: any) {
                 source={getGLBSource(glbFileName)}
                 position={objectPosition}
                 scale={scale}
+                rotation={[0, rotation, 0]}
                 type="GLB"
                 onLoadStart={() => console.log(`--- Loading ${glbFileName} ---`)}
                 onLoadEnd={() => console.log(`--- ${glbFileName} loaded successfully! ---`)}
@@ -124,6 +126,8 @@ export default function ARImplementation({ glbFileName }: ARImplementationProps)
     const [locked, setLocked] = useState(false);
     const [scale, setScale] = useState<Vec3>([0.55, 0.55, 0.55]);
     const [sliderPosition, setSliderPosition] = useState(0.5); // 0 to 1, where 0.5 is middle
+    const [rotation, setRotation] = useState(0); // rotation in degrees (0 to 360)
+    const [rotationSliderPosition, setRotationSliderPosition] = useState(0.5); // 0 to 1, where 0.5 is middle (180 degrees)
 
     // continuously updated camera pose
     const [followCamPos, setFollowCamPos] = useState<Vec3>([0, 0, 0]);
@@ -154,7 +158,7 @@ export default function ARImplementation({ glbFileName }: ARImplementationProps)
         setLocked(false);
     }, []);
 
-    // PanResponder for vertical slider
+    // PanResponder for vertical slider (scale)
     const panResponder = useMemo(
         () =>
             PanResponder.create({
@@ -183,6 +187,32 @@ export default function ARImplementation({ glbFileName }: ARImplementationProps)
         []
     );
 
+    // PanResponder for horizontal slider (rotation)
+    const rotationPanResponder = useMemo(
+        () =>
+            PanResponder.create({
+                onStartShouldSetPanResponder: () => true,
+                onMoveShouldSetPanResponder: () => true,
+                onPanResponderMove: (evt, gestureState) => {
+                    // Get the touch X position relative to the slider track
+                    const sliderWidth = 300; // Width of the slider track
+                    const touchX = gestureState.moveX - 50; // Adjust for left offset
+
+                    // Calculate position (0 at left, 1 at right)
+                    let position = touchX / sliderWidth;
+                    position = Math.max(0, Math.min(1, position)); // Clamp between 0 and 1
+
+                    setRotationSliderPosition(position);
+
+                    // Map position to rotation: 0 = 0°, 0.5 = 180°, 1 = 360°
+                    const rotationValue = position * 360;
+
+                    setRotation(rotationValue);
+                },
+            }),
+        []
+    );
+
     const viroAppProps = useMemo(
         () => ({
             locked,
@@ -192,8 +222,9 @@ export default function ARImplementation({ glbFileName }: ARImplementationProps)
             setCameraPose,
             glbFileName,
             scale,
+            rotation,
         }),
-        [locked, lockedWorldPos, followCamPos, followCamFwd, setCameraPose, glbFileName, scale]
+        [locked, lockedWorldPos, followCamPos, followCamFwd, setCameraPose, glbFileName, scale, rotation]
     );
 
     return (
@@ -213,6 +244,18 @@ export default function ARImplementation({ glbFileName }: ARImplementationProps)
                         style={[
                             styles.sliderThumb,
                             { top: `${sliderPosition * 100}%` },
+                        ]}
+                    />
+                </View>
+            </View>
+
+            {/* Horizontal Slider at the Bottom for Rotation */}
+            <View style={styles.rotationSliderContainer} {...rotationPanResponder.panHandlers}>
+                <View style={styles.rotationSliderTrack}>
+                    <View
+                        style={[
+                            styles.rotationSliderThumb,
+                            { left: `${rotationSliderPosition * 100}%` },
                         ]}
                     />
                 </View>
@@ -275,7 +318,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: 140, // above your custom tab bar
+        bottom: 170, // above your custom tab bar
         alignItems: "center",
         gap: 12,
     },
@@ -314,5 +357,32 @@ const styles = StyleSheet.create({
         color: "#000",
         fontSize: 14,
         fontWeight: "900",
+    },
+    rotationSliderContainer: {
+        position: "absolute",
+        bottom: 120,
+        left: 50,
+        right: 50,
+        height: 60,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    rotationSliderTrack: {
+        height: 6,
+        width: "100%",
+        backgroundColor: "rgba(255, 255, 255, 0.5)",
+        borderRadius: 3,
+        position: "relative",
+    },
+    rotationSliderThumb: {
+        position: "absolute",
+        top: -12,
+        width: 30,
+        height: 30,
+        backgroundColor: "#FF8A00",
+        borderRadius: 15,
+        borderWidth: 3,
+        borderColor: "#FFFFFF",
+        marginLeft: -15, // Center the thumb on the track
     },
 });
