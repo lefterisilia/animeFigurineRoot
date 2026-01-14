@@ -1,16 +1,23 @@
 // app/(tabs)/ar.tsx
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ARScreen() {
     const { glb } = useLocalSearchParams();
+    const router = useRouter();
     const [ARComponent, setARComponent] = useState<React.ComponentType<any> | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         let mounted = true;
+
+        // Reset state when glb changes to force remount
+        setIsLoading(true);
+        setError(null);
+        setARComponent(null);
 
         const loadARComponent = async () => {
             try {
@@ -37,12 +44,19 @@ export default function ARScreen() {
 
         return () => {
             mounted = false;
+            // Cleanup: unmount AR component when navigating away
+            setARComponent(null);
+            setIsLoading(true);
+            setError(null);
         };
-    }, []);
+    }, [glb]);
 
     if (error) {
         return (
             <View style={styles.container}>
+                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                    <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+                </TouchableOpacity>
                 <Text style={styles.errorText}>{error}</Text>
             </View>
         );
@@ -51,19 +65,41 @@ export default function ARScreen() {
     if (isLoading || !ARComponent) {
         return (
             <View style={styles.container}>
+                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                    <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+                </TouchableOpacity>
                 <ActivityIndicator size="large" color="#FF8A00" />
                 <Text style={styles.loadingText}>Initializing AR...</Text>
             </View>
         );
     }
 
-    return <ARComponent glbFileName={glb as string} />;
+    return (
+        <View style={{ flex: 1 }}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+            <ARComponent key={glb as string} glbFileName={glb as string} />
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    backButton: {
+        position: "absolute",
+        top: 50,
+        left: 20,
+        zIndex: 1000,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        borderRadius: 25,
+        width: 50,
+        height: 50,
         justifyContent: "center",
         alignItems: "center",
     },

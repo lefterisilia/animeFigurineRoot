@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet, PanResponder } from "react-native";
 import {
     ViroARScene,
     ViroAmbientLight,
@@ -62,7 +62,7 @@ function getGLBSource(fileName: string) {
         "makima.glb": require("../../assets/makima.glb"),
         "new_no_draco.glb": require("../../assets/new_no_draco.glb"),
     };
-    
+
     return glbMap[fileName] || glbMap["saitama.glb"];
 }
 
@@ -74,6 +74,7 @@ function ARScene(props: any) {
     const followCamPos: Vec3 = appProps?.followCamPos ?? [0, 0, 0];
     const followCamFwd: Vec3 = appProps?.followCamFwd ?? [0, 0, -1];
     const glbFileName: string = appProps?.glbFileName ?? "saitama.glb";
+    const scale: Vec3 = appProps?.scale ?? [0.55, 0.55, 0.55];
 
     const setCameraPose: ((p: Vec3, f: Vec3) => void) | undefined = appProps?.setCameraPose;
 
@@ -105,7 +106,7 @@ function ARScene(props: any) {
                 key={glbFileName}
                 source={getGLBSource(glbFileName)}
                 position={objectPosition}
-                scale={[1, 1, 1]} // Anime models are usually huge, start small
+                scale={scale}
                 type="GLB"
                 onLoadStart={() => console.log(`--- Loading ${glbFileName} ---`)}
                 onLoadEnd={() => console.log(`--- ${glbFileName} loaded successfully! ---`)}
@@ -121,6 +122,8 @@ interface ARImplementationProps {
 
 export default function ARImplementation({ glbFileName }: ARImplementationProps) {
     const [locked, setLocked] = useState(false);
+    const [scale, setScale] = useState<Vec3>([0.55, 0.55, 0.55]);
+    const [sliderPosition, setSliderPosition] = useState(0.5); // 0 to 1, where 0.5 is middle
 
     // continuously updated camera pose
     const [followCamPos, setFollowCamPos] = useState<Vec3>([0, 0, 0]);
@@ -151,6 +154,35 @@ export default function ARImplementation({ glbFileName }: ARImplementationProps)
         setLocked(false);
     }, []);
 
+    // PanResponder for vertical slider
+    const panResponder = useMemo(
+        () =>
+            PanResponder.create({
+                onStartShouldSetPanResponder: () => true,
+                onMoveShouldSetPanResponder: () => true,
+                onPanResponderMove: (evt, gestureState) => {
+                    // Get the touch Y position relative to the slider track
+                    const sliderHeight = 400; // Height of the slider track
+                    const touchY = gestureState.moveY - 100; // Adjust for top offset
+
+                    // Calculate position (0 at top, 1 at bottom)
+                    let position = touchY / sliderHeight;
+                    position = Math.max(0, Math.min(1, position)); // Clamp between 0 and 1
+
+                    setSliderPosition(position);
+
+                    // Map position to scale: top (0) = large, bottom (1) = small
+                    // Scale range: 0.2 to 1.5
+                    const minScale = 0.2;
+                    const maxScale = 1.5;
+                    const scaleValue = maxScale - position * (maxScale - minScale);
+
+                    setScale([scaleValue, scaleValue, scaleValue]);
+                },
+            }),
+        []
+    );
+
     const viroAppProps = useMemo(
         () => ({
             locked,
@@ -159,18 +191,32 @@ export default function ARImplementation({ glbFileName }: ARImplementationProps)
             followCamFwd,
             setCameraPose,
             glbFileName,
+            scale,
         }),
-        [locked, lockedWorldPos, followCamPos, followCamFwd, setCameraPose, glbFileName]
+        [locked, lockedWorldPos, followCamPos, followCamFwd, setCameraPose, glbFileName, scale]
     );
 
     return (
         <View style={{ flex: 1 }}>
             <ViroARSceneNavigator
+                key={glbFileName}
                 autofocus
                 initialScene={{ scene: ARScene as any }}
                 viroAppProps={viroAppProps}
                 style={{ flex: 1 }}
             />
+
+            {/* Vertical Slider on the Left */}
+            <View style={styles.sliderContainer} {...panResponder.panHandlers}>
+                <View style={styles.sliderTrack}>
+                    <View
+                        style={[
+                            styles.sliderThumb,
+                            { top: `${sliderPosition * 100}%` },
+                        ]}
+                    />
+                </View>
+            </View>
 
             <View style={styles.overlay} pointerEvents="box-none">
                 {!locked ? (
@@ -198,6 +244,33 @@ export default function ARImplementation({ glbFileName }: ARImplementationProps)
 }
 
 const styles = StyleSheet.create({
+    sliderContainer: {
+        position: "absolute",
+        left: 20,
+        top: 140,
+        width: 60,
+        height: 400,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    sliderTrack: {
+        width: 6,
+        height: "100%",
+        backgroundColor: "rgba(255, 255, 255, 0.5)",
+        borderRadius: 3,
+        position: "relative",
+    },
+    sliderThumb: {
+        position: "absolute",
+        left: -12,
+        width: 30,
+        height: 30,
+        backgroundColor: "#FF8A00",
+        borderRadius: 15,
+        borderWidth: 3,
+        borderColor: "#FFFFFF",
+        marginTop: -15, // Center the thumb on the track
+    },
     overlay: {
         position: "absolute",
         left: 0,
