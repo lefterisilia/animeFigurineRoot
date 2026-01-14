@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless Express API for discount app
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Timeout: 30
+    MemorySize: 512
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./          # use this folder as code root
+      Handler: server.handler  # server.js -> module.exports.handler
+      Events:
+        HttpApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          DATABASE_URL: "postgresql://neondb_owner:npg_UwBGAoh1VNe0@ep-wild-forest-a4x12sib-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+
+

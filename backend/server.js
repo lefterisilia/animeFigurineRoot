@@ -2,11 +2,22 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { query } from "./db.js";
+import { Pool } from "pg";
+import serverless from "serverless-http";   // ✅ ESM import
 import { generateRandomPin, sendPinEmail } from './SendEmailFunctions.js';
 import bcrypt from 'bcryptjs';
 
 dotenv.config();
+
+// Database connection pool
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+});
+
+// Database query function
+async function query(text, params) {
+    return pool.query(text, params);
+}
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -533,7 +544,6 @@ app.post("/order/create", async (req, res) => {
     }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`API listening on http://0.0.0.0:${PORT}`);
-});
+export const handler = serverless(app);
+
 

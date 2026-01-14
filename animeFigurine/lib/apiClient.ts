@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const LOCAL_API = "http://192.168.10.10:4000"; // your PC IP for real device
+const LOCAL_API = "https://wfnih6gc9g.execute-api.us-east-1.amazonaws.com"; // your PC IP for real device
 
 
 export const apiClient = axios.create({

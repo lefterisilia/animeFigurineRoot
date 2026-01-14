@@ -4,6 +4,7 @@ import { useCart } from "@/hooks/useCart";
 import { Ionicons } from "@expo/vector-icons";
 import { getUser } from "@/lib/authStorage";
 import { apiClient } from "@/lib/apiClient";
+import { useFocusEffect } from "expo-router";
 
 export default function BasketScreen() {
     const { items, removeFromCart, clearCart, update } = useCart();
@@ -17,46 +18,42 @@ export default function BasketScreen() {
     const [notes, setNotes] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => {
-        const loadUser = async () => {
-            const userData = await getUser();
-            setUser(userData);
-            
-            // Load saved address if user exists
-            if (userData?.id) {
-                try {
-                    const response = await apiClient.get(`/address/${userData.id}`);
-                    if (response.data.address) {
-                        setSavedAddress(response.data.address);
-                    }
-                } catch (error) {
-                    console.error("Failed to load saved address:", error);
-                }
-            }
-        };
-        loadUser();
-    }, []);
+    useFocusEffect(
+        React.useCallback(() => {
+            const loadUserAndCart = async () => {
+                const userData = await getUser();
+                setUser(userData);
 
-    useEffect(() => {
-        const fetchCart = async () => {
-            if (user?.id) {
-                try {
-                    const response = await apiClient.get(`/cart/${user.id}`);
-                    const fetchedItems = response.data.items.map((item: any) => ({
-                        id: item.id,
-                        name: item.name,
-                        price: item.price,
-                        image_url: item.image_url,
-                        quantity: 1
-                    }));
-                    update(fetchedItems);
-                } catch (error) {
-                    console.error("Failed to fetch cart from backend:", error);
+                // Load saved address if user exists
+                if (userData?.id) {
+                    try {
+                        const addressResponse = await apiClient.get(`/address/${userData.id}`);
+                        if (addressResponse.data.address) {
+                            setSavedAddress(addressResponse.data.address);
+                        }
+                    } catch (error) {
+                        console.error("Failed to load saved address:", error);
+                    }
+
+                    // Fetch cart from backend
+                    try {
+                        const cartResponse = await apiClient.get(`/cart/${userData.id}`);
+                        const fetchedItems = cartResponse.data.items.map((item: any) => ({
+                            id: item.id,
+                            name: item.name,
+                            price: item.price,
+                            image_url: item.image_url,
+                            quantity: 1
+                        }));
+                        update(fetchedItems);
+                    } catch (error) {
+                        console.error("Failed to fetch cart from backend:", error);
+                    }
                 }
-            }
-        };
-        fetchCart();
-    }, [user]);
+            };
+            loadUserAndCart();
+        }, [])
+    );
 
     const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
@@ -88,7 +85,7 @@ export default function BasketScreen() {
 
             // Clear the cart from frontend
             clearCart();
-            
+
             setShowCheckoutModal(false);
             setShowThankYouModal(true);
             // Clear form
@@ -176,7 +173,7 @@ export default function BasketScreen() {
                                 <View style={styles.savedAddressBox}>
                                     <View style={styles.savedAddressHeader}>
                                         <Text style={styles.savedAddressTitle}>Saved Address</Text>
-                                        <TouchableOpacity 
+                                        <TouchableOpacity
                                             style={styles.useSavedButton}
                                             onPress={loadSavedAddress}
                                             disabled={isSubmitting}
