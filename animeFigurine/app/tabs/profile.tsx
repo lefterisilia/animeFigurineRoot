@@ -48,13 +48,27 @@ export default function ProfileScreen() {
                 <Field label="Name" value={user.username || "N/A"} />
 
                 <Field label="Email" value={user.email || "N/A"} />
+                
+                {/* Order History Button */}
                 <TouchableOpacity
+                    style={styles.orderHistoryButton}
+                    onPress={() => {
+                        // Navigate to order history screen
+                        router.push("/order-history");
+                    }}
+                >
+                    <Text style={styles.orderHistoryButtonText}>Order History</Text>
+                </TouchableOpacity>
+
+                {/* Logout Button */}
+                <TouchableOpacity
+                    style={styles.logoutButton}
                     onPress={async () => {
                         await clearUser();
                         router.replace("/login");
                     }}
                 >
-                    <Text>Logout</Text>
+                    <Text style={styles.logoutButtonText}>Logout</Text>
                 </TouchableOpacity>
             </View>
 
@@ -133,5 +147,32 @@ const styles = StyleSheet.create({
     },
     fieldValue: {
         fontSize: 14,
+    },
+    orderHistoryButton: {
+        backgroundColor: ORANGE,
+        borderRadius: 10,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        alignItems: "center",
+        marginTop: 20,
+        marginBottom: 12,
+    },
+    orderHistoryButtonText: {
+        color: "#000",
+        fontSize: 16,
+        fontWeight: "600",
+    },
+    logoutButton: {
+        backgroundColor: "#FF4444",
+        borderRadius: 10,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        alignItems: "center",
+        marginTop: 8,
+    },
+    logoutButtonText: {
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "600",
     },
 });

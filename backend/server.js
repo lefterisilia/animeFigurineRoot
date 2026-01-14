@@ -415,6 +415,64 @@ app.post("/address/save", async (req, res) => {
     }
 });
 
+// Get orders for a specific user
+app.get("/orders/:userid", async (req, res) => {
+    const { userid } = req.params;
+
+    if (!userid) {
+        return res.status(400).json({ error: "userid is required" });
+    }
+
+    try {
+        // Fetch all orders for the user with shipping details
+        const ordersResult = await query(
+            `SELECT 
+                o.id,
+                o.userid,
+                o.date,
+                o.status,
+                o.total,
+                s.address,
+                s.city,
+                s.postalcode,
+                s.notes
+            FROM orders o
+            LEFT JOIN shipping s ON o.shippingid = s.id
+            WHERE o.userid = $1
+            ORDER BY o.date DESC`,
+            [userid]
+        );
+
+        // For each order, fetch its products
+        const orders = [];
+        for (const order of ordersResult.rows) {
+            const productsResult = await query(
+                `SELECT 
+                    op.id as order_product_id,
+                    op.productid,
+                    f.name,
+                    f.price,
+                    f.image_url,
+                    f.description
+                FROM orders_products op
+                LEFT JOIN figurines f ON op.productid = f.id
+                WHERE op.orderid = $1`,
+                [order.id]
+            );
+
+            orders.push({
+                ...order,
+                products: productsResult.rows
+            });
+        }
+
+        res.json({ orders });
+    } catch (err) {
+        console.error("Error fetching orders:", err);
+        res.status(500).json({ error: "Failed to fetch orders" });
+    }
+});
+
 // Order creation endpoint
 app.post("/order/create", async (req, res) => {
     const { userid, address, city, postalcode, notes, cartItems, total } = req.body;
