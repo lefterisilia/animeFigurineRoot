@@ -54,7 +54,7 @@ export default function ProfileScreen() {
                     style={styles.orderHistoryButton}
                     onPress={() => {
                         // Navigate to order history screen
-                        router.push("/order-history");
+                        router.push("/tabs/order-history");
                     }}
                 >
                     <Text style={styles.orderHistoryButtonText}>Order History</Text>

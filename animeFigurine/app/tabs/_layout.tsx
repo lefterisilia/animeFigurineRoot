@@ -36,13 +36,13 @@ export default function TabsLayout() {
                         ]}
                     >
                         <TabIcon
-                            icon="cart-outline"
+                            icon="storefront-outline"
                             isActive={currentRoute === "home"}
                             size={ICON_SIZE}
                             onPress={() => router.push("/tabs/home")}
                         />
                         <TabIcon
-                            icon="basket-outline"
+                            icon="cart-outline"
                             isActive={currentRoute === "basket"}
                             size={ICON_SIZE}
                             onPress={() => router.push("/tabs/basket")}
@@ -82,7 +82,7 @@ function TabIcon({ icon, isActive, size, onPress }: TabIconProps) {
     return (
         <TouchableOpacity
             style={styles.iconWrapper}
-            activeOpacity={0.7}
+            activeOpacity={1.6}
             onPress={onPress}
         >
             <Ionicons

@@ -86,11 +86,19 @@ function ARScene(props: any) {
             <ViroAmbientLight color="#ffffff" />
 
             <Viro3DObject
-                source={require("../../assets/dog.glb")}
-                position={objectPosition}
-                scale={[0.55, 0.55, 0.55]}
-                type="GLB"
+                source={require("../../assets/jorato/tripo_convert_157789a6-34d6-43b8-819a-7dd1e039b5f4.obj")}
+                resources={[
+                    require("../../assets/jorato/tripo_convert_157789a6-34d6-43b8-819a-7dd1e039b5f4.mtl"),
+                    require("../../assets/jorato/jorato_basecolor.JPEG"),
+                    require("../../assets/jorato/jorato_metallic.JPEG"),
+                    require("../../assets/jorato/jorato_normal.JPEG"),
+                    require("../../assets/jorato/jorato_roughness.JPEG"),
+                ]}
+                position={[0, -0.2, -1]}
+                scale={[0.05, 0.05, 0.05]}
+                type="OBJ"
             />
+
         </ViroARScene>
     );
 }
